@@ -61,6 +61,23 @@ say what they are for.
   actually driving the page (Tab to a fresh control, press Enter, check
   whether anything fired) — the static test suite has no page-load clock and
   can't see this.
+- A Karplus-Strong (or any) feedback loop with a filter inside it isn't safe
+  just because the feedback gain alone is below 1. A biquad lowpass has a
+  small resonant overshoot (gain > 1) near its own cutoff even at very low Q
+  — it is not a Butterworth-flat unity-gain filter in practice. If
+  `feedbackGain * filterPeakGain` exceeds 1 at any frequency, the loop grows
+  exponentially over the hundreds of iterations per second these delay times
+  imply, turning a decaying pluck into a clipped, piercing scream within a
+  fraction of a second. This was present in the very first version of this
+  instrument and is why it sounded harsh — no oscillator was involved, the
+  loop itself was unstable. Fixed by measuring the in-loop filter's real peak
+  gain with `BiquadFilterNode.getFrequencyResponse()` at pluck-time and
+  dividing the feedback gain by it (plus a small safety margin), which
+  guarantees round-trip gain stays below 1 regardless of note or velocity.
+  Caught only by rendering the actual signal offline (`OfflineAudioContext`)
+  and inspecting peak amplitude over time — nothing in the test suite plays
+  or measures audio, and it's inaudible-until-it-isn't on headphones at low
+  volume.
 
 ## This file is yours
 

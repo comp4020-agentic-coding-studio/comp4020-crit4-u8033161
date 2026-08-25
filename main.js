@@ -30,11 +30,11 @@ function getAudioContext() {
   if (!audioCtx) {
     audioCtx = new AudioContext();
     masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0.6;
+    masterGain.gain.value = 0.5;
     const limiter = audioCtx.createDynamicsCompressor();
-    limiter.threshold.value = -8;
-    limiter.knee.value = 12;
-    limiter.ratio.value = 12;
+    limiter.threshold.value = -14;
+    limiter.knee.value = 8;
+    limiter.ratio.value = 6;
     masterGain.connect(limiter);
     limiter.connect(audioCtx.destination);
 
@@ -60,35 +60,75 @@ function pluck(button, velocity) {
   const delay = ctx.createDelay(1);
   delay.delayTime.value = delayTime;
 
+  // In-loop damping: a gentle lowpass so the recirculating signal itself
+  // stays warm rather than buzzy — this is what gives Karplus-Strong its
+  // plucked-string timbre, not a bright/harsh one.
   const damping = ctx.createBiquadFilter();
   damping.type = "lowpass";
-  damping.frequency.value = freq * (3 + velocity * 6);
-  damping.Q.value = 0.7;
+  damping.frequency.value = freq * (2 + velocity * 3);
+  damping.Q.value = 0.6;
+
+  // A biquad lowpass isn't unity-gain everywhere — it has a small overshoot
+  // near its own cutoff, even at low Q. Left uncorrected, that overshoot
+  // multiplied by the near-1 feedback gain pushes the loop's round-trip
+  // gain just over 1 at that frequency; compounded over a few hundred loop
+  // iterations per second, "just over 1" becomes a runaway scream within
+  // half a second instead of a decaying pluck. Measure the filter's actual
+  // peak gain and fold it into the feedback gain so the loop is provably
+  // stable (and still decays at roughly the intended rate) regardless of
+  // note or velocity.
+  const probeFreqs = new Float32Array(64);
+  for (let i = 0; i < probeFreqs.length; i++) {
+    probeFreqs[i] = 1 + (i / (probeFreqs.length - 1)) * (ctx.sampleRate / 2 - 1);
+  }
+  const probeMag = new Float32Array(probeFreqs.length);
+  damping.getFrequencyResponse(probeFreqs, probeMag, new Float32Array(probeFreqs.length));
+  const filterPeakGain = Math.max(...probeMag);
 
   const feedback = ctx.createGain();
-  feedback.gain.value = feedbackGain;
+  feedback.gain.value = feedbackGain / (filterPeakGain * 1.05);
+
+  // Tone envelope: starts bright and decays toward the fundamental over the
+  // pluck's lifetime, mirroring how a real string's upper harmonics die out
+  // faster than the note itself. Separate from the in-loop filter above,
+  // which only shapes the recirculating timbre, not the audible decay.
+  const tone = ctx.createBiquadFilter();
+  tone.type = "lowpass";
+  tone.Q.value = 0.5;
+  const brightHz = Math.min(ctx.sampleRate / 2 - 100, freq * (6 + velocity * 8));
+  const darkHz = freq * 1.5;
+  tone.frequency.setValueAtTime(brightHz, now);
+  tone.frequency.exponentialRampToValueAtTime(darkHz, now + DECAY_SECONDS);
 
   const outputGain = ctx.createGain();
-  outputGain.gain.value = 0.5 + velocity * 0.5;
-
-  const burstGain = ctx.createGain();
-  burstGain.gain.value = velocity;
+  outputGain.gain.value = 0.35 + velocity * 0.35;
 
   const noise = ctx.createBufferSource();
   noise.buffer = noiseBuffer;
 
+  // Fade the noise burst in and out instead of gating it on/off, so the
+  // pick attack is a soft transient rather than a hard click.
+  const burstDuration = delayTime * 2;
+  const burstGain = ctx.createGain();
+  const fade = Math.min(burstDuration / 3, 0.004);
+  burstGain.gain.setValueAtTime(0, now);
+  burstGain.gain.linearRampToValueAtTime(velocity, now + fade);
+  burstGain.gain.linearRampToValueAtTime(0, now + burstDuration);
+
   // Feedback loop: delay -> damping filter -> feedback gain -> back into the
   // delay. The noise burst seeds it once, then it rings on its own, decaying
-  // as the feedback gain and lowpass roll energy off each lap.
+  // as the feedback gain and lowpass roll energy off each lap. The tone
+  // filter taps the loop on the way out, so it shapes what's heard without
+  // affecting what recirculates.
   noise.connect(burstGain);
   burstGain.connect(delay);
   delay.connect(damping);
   damping.connect(feedback);
   feedback.connect(delay);
-  damping.connect(outputGain);
+  damping.connect(tone);
+  tone.connect(outputGain);
   outputGain.connect(masterGain);
 
-  const burstDuration = delayTime * 2;
   const offset = Math.random() * (noiseBuffer.duration - burstDuration);
   noise.start(now, offset, burstDuration);
 
@@ -99,6 +139,7 @@ function pluck(button, velocity) {
     delay.disconnect();
     damping.disconnect();
     feedback.disconnect();
+    tone.disconnect();
     outputGain.disconnect();
   }, cleanupAfter);
 
