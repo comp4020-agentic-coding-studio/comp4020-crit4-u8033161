@@ -53,6 +53,14 @@ say what they are for.
   specificity. Any element toggled via the `hidden` attribute needs an
   explicit `.your-class[hidden] { display: none; }` rule alongside it. Caught
   by screenshotting the rendered page, not by reading the code.
+- A `someMap.get(key) ?? 0` fallback compared against `performance.now()` is a
+  trap: right after page load, `performance.now()` is itself small, so an
+  element that was never in the map reads as "just happened" and a guard
+  meant to suppress a double-fire instead suppresses the real first event.
+  Use `?? -Infinity` for a "never happened" sentinel, not `0`. Caught by
+  actually driving the page (Tab to a fresh control, press Enter, check
+  whether anything fired) — the static test suite has no page-load clock and
+  can't see this.
 
 ## This file is yours
 
@@ -61,8 +69,24 @@ convention the work has to hold to, a sensor that keeps catching you out (a
 linter, say), a fact about the stack that is easy to get wrong --- write it down
 here and wire it into `check`. Growing this file is the work.
 
-## This prototype
+## This prototype: Six strings
 
-TBD --- design still being locked in with the student before any prototype
-code lands. Fill this in (one paragraph: what it is, the core interaction)
-once agreed, in the same commit that starts the prototype.
+A six-string pluck instrument with no frets: each string is fixed to one note
+in C major pentatonic (C3 D3 E3 G3 A3 C4, left to right), so any combination
+played together stays consonant. Core interaction: drag a string sideways and
+release to pluck it — how far you pull it drives loudness and brightness —
+or press its home-row key (A S D F J K). Synthesis is Karplus-Strong (a noise
+burst recirculating through a delay/lowpass/feedback loop tuned to the
+string's period) rather than a flat oscillator, so it actually rings like a
+plucked string.
+
+Rules on top of the template's:
+
+- No frets, no along-string pitch variation — a string always sounds its one
+  note. Pull distance affects only volume/brightness, never pitch.
+- Every string must be reachable by pointer/touch drag, by its home-row key,
+  and by Tab + Enter/Space (native `<button>` semantics) — three input paths,
+  one trigger function.
+- A plain tap/click must still produce an audible pluck at a sensible volume;
+  don't let the "drag" mechanic gate the very first sound a stranger makes.
+- AudioContext is created lazily, on the first gesture — never at page load.
