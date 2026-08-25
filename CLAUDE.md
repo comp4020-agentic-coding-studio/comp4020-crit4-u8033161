@@ -78,6 +78,13 @@ say what they are for.
   and inspecting peak amplitude over time — nothing in the test suite plays
   or measures audio, and it's inaudible-until-it-isn't on headphones at low
   volume.
+- Reading `getComputedStyle(el).boxShadow` (or any transitioned property)
+  immediately after a JS-driven custom-property change can show the *old*
+  value for the first frame or two, even though the custom property itself
+  has already updated — the transition needs a tick to actually start
+  interpolating. A verification script that samples at t=0 will wrongly
+  conclude the style never changed. Wait past the transition's duration
+  before asserting on the settled value.
 
 ## This file is yours
 

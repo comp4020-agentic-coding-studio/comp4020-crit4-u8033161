@@ -29,14 +29,31 @@
     <main>
       <h1>Six strings</h1>
       <div class="fretboard" data-testid="fretboard">
-        <button type="button" class="string" data-note="C3" data-key="a" aria-label="String 1, C3, key A"></button>
-        <button type="button" class="string" data-note="D3" data-key="s" aria-label="String 2, D3, key S"></button>
-        <button type="button" class="string" data-note="E3" data-key="d" aria-label="String 3, E3, key D"></button>
-        <button type="button" class="string" data-note="G3" data-key="f" aria-label="String 4, G3, key F"></button>
-        <button type="button" class="string" data-note="A3" data-key="j" aria-label="String 5, A3, key J"></button>
-        <button type="button" class="string" data-note="C4" data-key="k" aria-label="String 6, C4, key K"></button>
+        <div class="string-col">
+          <button type="button" class="string" data-note="C3" data-key="a" aria-label="String 1, C3, key A"></button>
+          <span class="key-label" aria-hidden="true">A</span>
+        </div>
+        <div class="string-col">
+          <button type="button" class="string" data-note="D3" data-key="s" aria-label="String 2, D3, key S"></button>
+          <span class="key-label" aria-hidden="true">S</span>
+        </div>
+        <div class="string-col">
+          <button type="button" class="string" data-note="E3" data-key="d" aria-label="String 3, E3, key D"></button>
+          <span class="key-label" aria-hidden="true">D</span>
+        </div>
+        <div class="string-col">
+          <button type="button" class="string" data-note="G3" data-key="f" aria-label="String 4, G3, key F"></button>
+          <span class="key-label" aria-hidden="true">F</span>
+        </div>
+        <div class="string-col">
+          <button type="button" class="string" data-note="A3" data-key="j" aria-label="String 5, A3, key J"></button>
+          <span class="key-label" aria-hidden="true">J</span>
+        </div>
+        <div class="string-col">
+          <button type="button" class="string" data-note="C4" data-key="k" aria-label="String 6, C4, key K"></button>
+          <span class="key-label" aria-hidden="true">K</span>
+        </div>
       </div>
-      <p class="hint">drag a string, or press <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd></p>
     </main>
     <script type="module" src="./main.js"></script>
   </body>

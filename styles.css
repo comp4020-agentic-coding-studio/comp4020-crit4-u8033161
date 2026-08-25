@@ -35,6 +35,18 @@ h1 {
   color: #d9c9a3;
 }
 
+@property --idle-glow {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.15;
+}
+
+@property --glow {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
 .fretboard {
   --string-height: min(60vh, 28rem);
   width: 100%;
@@ -49,20 +61,60 @@ h1 {
   touch-action: none;
 }
 
+.string-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.string-col:nth-child(1) .string {
+  --hue: 10;
+  animation-delay: 0s;
+}
+.string-col:nth-child(2) .string {
+  --hue: 50;
+  animation-delay: -0.5s;
+}
+.string-col:nth-child(3) .string {
+  --hue: 95;
+  animation-delay: -1s;
+}
+.string-col:nth-child(4) .string {
+  --hue: 140;
+  animation-delay: -1.5s;
+}
+.string-col:nth-child(5) .string {
+  --hue: 185;
+  animation-delay: -2s;
+}
+.string-col:nth-child(6) .string {
+  --hue: 230;
+  animation-delay: -2.5s;
+}
+
 .string {
   --bend: 0px;
   --glow: 0;
+  --hue: 40;
   appearance: none;
   border: none;
   padding: 0;
+  flex: 1;
+  min-height: 0;
   width: 6px;
   border-radius: 999px;
   background: linear-gradient(180deg, #f2e6c9, #cbb37a);
-  box-shadow: 0 0 calc(4px + var(--glow) * 22px) calc(1px + var(--glow) * 6px)
-    rgba(255, 224, 130, var(--glow));
+  box-shadow:
+    0 0 calc(4px + var(--glow) * 22px) calc(1px + var(--glow) * 6px)
+      hsl(var(--hue) 90% 65% / var(--glow)),
+    0 0 calc(6px + var(--idle-glow) * 14px) calc(2px + var(--idle-glow) * 4px)
+      hsl(var(--hue) 85% 65% / var(--idle-glow));
   cursor: grab;
   transform: translateX(var(--bend));
   transition: transform 60ms ease-out, box-shadow 120ms ease-out;
+  animation: idle-shimmer 4s ease-in-out infinite;
 }
 
 .string:active {
@@ -75,7 +127,7 @@ h1 {
 }
 
 .string.plucked {
-  animation: pluck-spring 550ms cubic-bezier(0.36, 1.6, 0.4, 1);
+  animation: idle-shimmer 4s ease-in-out infinite, pluck-spring 550ms cubic-bezier(0.36, 1.6, 0.4, 1);
 }
 
 @keyframes pluck-spring {
@@ -87,16 +139,21 @@ h1 {
   }
 }
 
-.hint {
-  margin: 0;
-  color: #8a7a63;
-  font-size: 0.9rem;
+@keyframes idle-shimmer {
+  0%,
+  100% {
+    --idle-glow: 0.12;
+  }
+  50% {
+    --idle-glow: 0.5;
+  }
 }
 
-kbd {
-  font: inherit;
-  padding: 0.1em 0.4em;
-  border-radius: 0.3em;
-  background: #2a2018;
-  border: 1px solid #4a3524;
+.key-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #8a7a63;
+  text-transform: uppercase;
+  user-select: none;
 }
