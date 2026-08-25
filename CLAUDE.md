@@ -95,22 +95,33 @@ here and wire it into `check`. Growing this file is the work.
 
 ## This prototype: Six strings
 
-A six-string pluck instrument with no frets: each string is fixed to one note
-in C major pentatonic (C3 D3 E3 G3 A3 C4, left to right), so any combination
-played together stays consonant. Core interaction: drag a string sideways and
-release to pluck it — how far you pull it drives loudness and brightness —
-or press its home-row key (A S D F J K). Synthesis is Karplus-Strong (a noise
-burst recirculating through a delay/lowpass/feedback loop tuned to the
-string's period) rather than a flat oscillator, so it actually rings like a
-plucked string.
+A twelve-string pluck instrument with no frets, in two rows of six: each
+string is fixed to one note in C major pentatonic, spanning two octaves
+(C3 D3 E3 G3 A3 C4, then C4 D4 E4 G4 A4 C5, left to right in each row), so any
+combination played together — within a row or across both — stays consonant.
+Core interaction: drag a string sideways and release to pluck it — how far
+you pull it drives loudness and brightness — or press its home-row key (row
+one only: A S D F J K). Dragging or swiping continuously across strings
+strums them in sequence, in whichever order the gesture actually crosses
+them — left-to-right ascending, right-to-left descending — by treating
+"leaving a string" (via a crossing or via release) as the trigger, uniformly,
+rather than a separate strum-specific code path. Synthesis is Karplus-Strong
+(a noise burst recirculating through a delay/lowpass/feedback loop tuned to
+the string's period) rather than a flat oscillator, so it actually rings like
+a plucked string.
 
 Rules on top of the template's:
 
 - No frets, no along-string pitch variation — a string always sounds its one
   note. Pull distance affects only volume/brightness, never pitch.
-- Every string must be reachable by pointer/touch drag, by its home-row key,
-  and by Tab + Enter/Space (native `<button>` semantics) — three input paths,
-  one trigger function.
+- Row one (the original six) must be reachable by pointer/touch drag, by its
+  home-row key, and by Tab + Enter/Space — three input paths, one trigger
+  function. Row two (the octave-up six) is reachable by drag/touch and
+  Tab + Enter/Space only, deliberately — it has no key of its own, by design,
+  not by oversight; it exists for strumming and reachability, not for typing.
+- Pointer handling must never call `setPointerCapture` — capturing to the
+  button a drag started on makes it impossible to detect the drag crossing
+  into a different string, which breaks strumming outright.
 - A plain tap/click must still produce an audible pluck at a sensible volume;
   don't let the "drag" mechanic gate the very first sound a stranger makes.
 - AudioContext is created lazily, on the first gesture — never at page load.

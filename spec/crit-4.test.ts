@@ -14,7 +14,10 @@ const DIST = resolve("dist");
 const doc = new JSDOM(readFileSync(resolve(DIST, "index.html"), "utf8")).window.document;
 const mainSource = readFileSync(resolve(DIST, "main.js"), "utf8");
 
-const EXPECTED_NOTES = ["C3", "D3", "E3", "G3", "A3", "C4"];
+// Two octaves of the same C major pentatonic run, back to back: row one is
+// the original six keyed strings, row two repeats the pattern an octave up
+// with no keys of its own (drag/touch and Tab+Enter only — see below).
+const EXPECTED_NOTES = ["C3", "D3", "E3", "G3", "A3", "C4", "C4", "D4", "E4", "G4", "A4", "C5"];
 const EXPECTED_KEYS = ["a", "s", "d", "f", "j", "k"];
 
 describe("crit 4: an instrument", () => {
@@ -30,10 +33,19 @@ describe("crit 4: an instrument", () => {
     }
   });
 
-  it("maps every string to a distinct home-row key", () => {
-    const keys = strings.map((el) => el.getAttribute("data-key"));
+  it("maps the first (keyed) row to a distinct home-row key each", () => {
+    const keyedRow = strings.slice(0, EXPECTED_KEYS.length);
+    const keys = keyedRow.map((el) => el.getAttribute("data-key"));
     expect(keys).toEqual(EXPECTED_KEYS);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("leaves the second octave row keyless by design — drag/touch and Tab+Enter only", () => {
+    const secondRow = strings.slice(EXPECTED_KEYS.length);
+    expect(secondRow.length).toBe(6);
+    for (const el of secondRow) {
+      expect(el.hasAttribute("data-key"), `${el.outerHTML} shouldn't have its own key`).toBe(false);
+    }
   });
 
   it("generates sound live via the Web Audio API rather than playing a file", () => {
