@@ -21,6 +21,7 @@ const CLICK_VELOCITY = 0.75;
 const DECAY_SECONDS = 1.6;
 
 const strings = [...document.querySelectorAll(".string")];
+const fretboards = [...document.querySelectorAll(".fretboard")];
 
 let audioCtx;
 let masterGain;
@@ -163,43 +164,77 @@ for (const button of strings) {
 
 // Pointer/touch: drag a string sideways and release to pluck it. How far you
 // pulled it drives both loudness and brightness; a plain tap still plucks.
-const drags = new Map();
+// Deliberately no `setPointerCapture`: capturing the pointer to the button it
+// started on would lock every later event for that pointer to that one
+// button, making it architecturally impossible to detect the drag crossing
+// into a different string — which is exactly what a strum needs. Without
+// capture, `event.target` naturally tracks whichever `.string` is currently
+// under the pointer, for mouse and touch alike (both dispatch through the
+// same Pointer Events here).
+const drags = new Map(); // pointerId -> { currentButton, startX }
 const recentPointerPluck = new WeakMap();
+
+// Releasing a string — whether by lifting the pointer or by dragging past it
+// into the next one — always plucks it with the same pull-distance-driven
+// feel: how far you'd pulled *that* string before leaving it drives its
+// loudness and brightness, exactly like a plain single-string drag.
+function releaseString(button, startX, event) {
+  const delta = event.clientX - startX;
+  const magnitude = Math.min(MAX_BEND_PX, Math.abs(delta));
+  const velocity = Math.max(0.45, magnitude / MAX_BEND_PX);
+  const visualBend = magnitude < 6 ? Math.sign(delta || 1) * TAP_VISUAL_BEND_PX : delta;
+
+  recentPointerPluck.set(button, performance.now());
+  pluck(button, velocity);
+  bendAndRelease(button, visualBend);
+}
 
 for (const button of strings) {
   button.addEventListener("pointerdown", (event) => {
-    button.setPointerCapture(event.pointerId);
-    drags.set(button, event.clientX);
+    drags.set(event.pointerId, { currentButton: button, startX: event.clientX });
   });
-
-  button.addEventListener("pointermove", (event) => {
-    const startX = drags.get(button);
-    if (startX === undefined) return;
-    const delta = Math.max(-MAX_BEND_PX, Math.min(MAX_BEND_PX, event.clientX - startX));
-    button.style.setProperty("--bend", `${delta}px`);
-  });
-
-  const release = (event) => {
-    const startX = drags.get(button);
-    if (startX === undefined) return;
-    drags.delete(button);
-    const delta = event.clientX - startX;
-    const magnitude = Math.min(MAX_BEND_PX, Math.abs(delta));
-    const velocity = Math.max(0.45, magnitude / MAX_BEND_PX);
-    const visualBend = magnitude < 6 ? Math.sign(delta || 1) * TAP_VISUAL_BEND_PX : delta;
-
-    recentPointerPluck.set(button, performance.now());
-    pluck(button, velocity);
-    bendAndRelease(button, visualBend);
-  };
-
-  button.addEventListener("pointerup", release);
-  button.addEventListener("pointercancel", release);
 }
+
+for (const fretboard of fretboards) {
+  fretboard.addEventListener("pointermove", (event) => {
+    const drag = drags.get(event.pointerId);
+    if (!drag) return;
+
+    const hovered = event.target.closest(".string");
+    if (hovered && hovered !== drag.currentButton && strings.includes(hovered)) {
+      // The drag has swept past drag.currentButton into a new string:
+      // release the one being left, then start tracking the new one. Doing
+      // this on every crossing — not just at pointerup — is what makes a
+      // continuous drag across strings sound each one in turn, in whatever
+      // order the pointer actually crossed them: left-to-right reads as
+      // ascending, right-to-left as descending, for free, since that's just
+      // the strings' left-to-right pitch order.
+      releaseString(drag.currentButton, drag.startX, event);
+      drag.currentButton = hovered;
+      drag.startX = event.clientX;
+      return;
+    }
+
+    const delta = Math.max(-MAX_BEND_PX, Math.min(MAX_BEND_PX, event.clientX - drag.startX));
+    drag.currentButton.style.setProperty("--bend", `${delta}px`);
+  });
+}
+
+const release = (event) => {
+  const drag = drags.get(event.pointerId);
+  if (!drag) return;
+  drags.delete(event.pointerId);
+  releaseString(drag.currentButton, drag.startX, event);
+};
+
+document.addEventListener("pointerup", release);
+document.addEventListener("pointercancel", release);
 
 // Keyboard: one key per string (home row), for players who never touch a
 // pointer. Tab + Enter/Space also works via the native <button> click below.
-const KEY_TO_BUTTON = new Map(strings.map((button) => [button.dataset.key, button]));
+const KEY_TO_BUTTON = new Map(
+  strings.filter((button) => button.dataset.key).map((button) => [button.dataset.key, button]),
+);
 
 window.addEventListener("keydown", (event) => {
   if (event.repeat) return;
