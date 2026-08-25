@@ -1,9 +1,5 @@
 # Process overview
 
-<!-- TEMPLATE: this file is a shape to fill in, not a form. Replace everything
-     in it with your own overview, and delete this comment — `pnpm
-     check:evidence` will remind you if it's still here. -->
-
 A reading-guide to how the work came together --- a map to your process, not an
 essay about it. Markers read this file and follow its citations; they don't
 trawl the repo for evidence you didn't point at, so if a moment mattered, cite
@@ -17,60 +13,62 @@ cover every deliverable.
 
 ## What I built
 
-One paragraph: the thing, and the idea behind it.
+**Six strings**: a six-string pluck instrument with no frets. Each string is
+fixed to one note in C major pentatonic (C3 D3 E3 G3 A3 C4, left to right), so
+any combination played together stays consonant — there's no wrong chord.
+Drag a string sideways and release to pluck it (how far you pull it drives
+loudness and brightness), press its home-row key (A S D F J K), or Tab to it
+and hit Enter/Space. Synthesis is Karplus-Strong — a noise burst recirculating
+through a delay/lowpass/feedback loop tuned to the string's period — rather
+than a flat oscillator tone, so it actually rings.
 
 ## The moments that mattered
 
-Three or four for an assignment; fewer is fine for a weekly prototype. Keep the
-list short so each moment has room to do all four jobs:
+1. **Choosing "bare" over the templated stack.** The crit rewards a
+   deliberately chosen stack, not the default one. An instrument this small —
+   six buttons and one audio graph — doesn't need a bundler, so I dropped Vite
+   and TypeScript entirely and hand-wrote two small Node scripts
+   (`scripts/build.mjs`, `scripts/serve.mjs`) to replace what Vite was doing
+   for free
+   ([`4d7dcd2`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-u8033161/commit/4d7dcd2)).
+   The check that told me it actually worked was the same one the deployed
+   site depends on: `pnpm build` producing a `dist/` that `pnpm check`'s tests
+   read from directly, and a hand-written static server that I verified wasn't
+   just serving `/` — I hit the path-traversal case (`%2e%2e` and `..`)
+   deliberately with `curl` before trusting it, after an early version 403'd
+   on every file except the index page.
 
-1. **what happened** --- the problem, or the thing that went wrong
-2. **what you did instead of the obvious thing** --- the call you made, and why
-   it beat the obvious one
-3. **how you knew it was right** --- the check you ran, the viewport you looked
-   at, what you read before accepting the diff
-4. **the citation** --- a commit or commit range, a `CLAUDE.md` change, a check
-   that went from red to green, a prompt paired with the commit it produced
+2. **Not trusting the test suite as proof it runs.** `spec/crit-4.test.ts`
+   only reads the built `index.html` and `main.js` as static files — jsdom
+   doesn't execute `<script>` tags, so a suite full of green checks would
+   still pass if `main.js` threw on the first click. I drove the actual page
+   in a headless browser (Playwright, since `chromium-cli` wasn't available in
+   this environment) through all three input paths — drag, keyboard, and
+   Tab+Enter — before calling it done
+   ([`a394fa5`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-u8033161/commit/a394fa5)).
 
-Jobs 2 and 3 are the ones the repo can't tell a reader on its own, so they're
-where the marks are. The strongest moments are the ones where a correction
-landed in the **harness** --- the standards and checks your work has to satisfy
---- rather than in a retry: a rule added to `CLAUDE.md`, a check wired up, an
-attempt thrown away. Retrying until it passes is the routine case, and changing
-what the work runs against is the skilled one.
+3. **What that driving run actually caught.** The Tab+Enter path silently
+   failed to make sound the first time any given string was activated within
+   500ms of page load. The click handler guards against double-firing when a
+   pointer pluck and its resulting synthetic `click` both land
+   (`recentPointerPluck.get(button) ?? 0`), but `0` collides with
+   `performance.now()`'s own small value right after navigation — so a string
+   that had *never* been touched read as "just plucked a moment ago" and the
+   guard swallowed the real first Enter press. A static test can't see this;
+   it has no page-load clock to race against. I fixed the sentinel
+   (`?? -Infinity`, which can never be "recent") and re-ran the same
+   browser-driven check to confirm all five paths (drag-bend, drag-glow, tap,
+   keyboard, Tab+Enter) now actually trigger `AudioBufferSourceNode.start`,
+   then wrote the failure mode into `CLAUDE.md` as a generalizable lesson
+   rather than just a fixed line
+   ([`0e2324b`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-u8033161/commit/0e2324b)).
 
-Cite each moment as a link whose text is the commit hash or range and whose
-target is this repo's commit or compare URL, so a reader clicks straight to the
-evidence:
+   > Full design was locked in a few messages back — build against that.
 
-- one commit: [`a1b2c3d`](https://github.com/YOUR-ORG/YOUR-REPO/commit/a1b2c3d)
-- a range:
-  [`a1b2c3d...e4f5a6b`](https://github.com/YOUR-ORG/YOUR-REPO/compare/a1b2c3d...e4f5a6b)
-
-To pair a prompt with the commit it produced, quote the prompt (curated, not a
-full transcript) next to the citation:
-
-> the prompt, verbatim
-
-Screenshots are welcome where one carries the verification better than a
-sentence does. Commit the file to this repo and link it with a **relative**
-path, which is what makes it render on GitHub: `![alt text](docs/before.png)`.
-Images don't count towards the word count and don't replace the citation.
-
-### A worked moment, for shape
-
-Delete this section along with the rest of the boilerplate --- it's here to show
-the four jobs in one paragraph, not to be imitated in content.
-
-> The date formatter kept coming back with `toLocaleDateString()` and no locale
-> argument, so the same build rendered differently on my machine and in CI. I'd
-> already re-prompted it twice, which fixed the line but not the habit, so the
-> third time I put the rule in `CLAUDE.md` instead
-> ([`3f9ac21`](https://github.com/YOUR-ORG/YOUR-REPO/commit/3f9ac21)) and added
-> a spec test that fails on a bare `toLocaleDateString`. That's what told me it
-> had actually taken: the test went red against the old code and green against
-> the new, and the next two features it wrote passed it without prompting
-> ([`3f9ac21...b7e0d14`](https://github.com/YOUR-ORG/YOUR-REPO/compare/3f9ac21...b7e0d14)).
+   (This prompt referred to a design I didn't actually have in context; I said
+   so rather than inventing one, and the student re-supplied the real
+   spec — 6 fixed-pitch pentatonic strings, one home-row key each — before any
+   code was written.)
 
 ## Before you ship
 
