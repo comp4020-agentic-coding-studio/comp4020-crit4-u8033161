@@ -100,8 +100,9 @@ string is fixed to one note in C major pentatonic, spanning two octaves
 (C3 D3 E3 G3 A3 C4, then C4 D4 E4 G4 A4 C5, left to right in each row), so any
 combination played together — within a row or across both — stays consonant.
 Core interaction: drag a string sideways and release to pluck it — how far
-you pull it drives loudness and brightness — or press its home-row key (row
-one only: A S D F J K). Dragging or swiping continuously across strings
+you pull it drives loudness and brightness — or press its own key (row one:
+A S D F J K; row two: Q W E R U I, directly above and column-aligned with row
+one). Dragging or swiping continuously across strings
 strums them in sequence, in whichever order the gesture actually crosses
 them — left-to-right ascending, right-to-left descending — by treating
 "leaving a string" (via a crossing or via release) as the trigger, uniformly,
@@ -114,11 +115,11 @@ Rules on top of the template's:
 
 - No frets, no along-string pitch variation — a string always sounds its one
   note. Pull distance affects only volume/brightness, never pitch.
-- Row one (the original six) must be reachable by pointer/touch drag, by its
-  home-row key, and by Tab + Enter/Space — three input paths, one trigger
-  function. Row two (the octave-up six) is reachable by drag/touch and
-  Tab + Enter/Space only, deliberately — it has no key of its own, by design,
-  not by oversight; it exists for strumming and reachability, not for typing.
+- Every string, in either row, must be reachable by pointer/touch drag, by
+  its own key, and by Tab + Enter/Space — three input paths, one trigger
+  function. Row one uses the home row (A S D F J K); row two uses the row
+  above it (Q W E R U I), column-aligned with row one, so mouse-only drag
+  isn't the only way to trigger an individual note in either row.
 - Pointer handling must never call `setPointerCapture` — capturing to the
   button a drag started on makes it impossible to detect the drag crossing
   into a different string, which breaks strumming outright.
