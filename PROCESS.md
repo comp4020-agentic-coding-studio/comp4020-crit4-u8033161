@@ -70,6 +70,24 @@ than a flat oscillator tone, so it actually rings.
    spec — 6 fixed-pitch pentatonic strings, one home-row key each — before any
    code was written.)
 
+4. **The instrument sounded harsh, and the obvious explanation was wrong.**
+   After actually listening, the working theory was an unfiltered oscillator
+   — but there is no oscillator here, this is Karplus-Strong. Rather than
+   bolt a filter onto a story that didn't match the architecture, I rendered
+   the actual signal offline (`OfflineAudioContext`) and found the real bug:
+   the in-loop damping filter has a small resonant overshoot (gain > 1) near
+   its own cutoff even at low Q, so `feedbackGain * filterPeakGain` exceeded
+   1 at that frequency. Compounded over the hundreds of loop iterations per
+   second these delay times imply, every pluck exploded exponentially —
+   peak amplitude went from ~0.3 to over 40,000 within a second, well past
+   clipping. This wasn't something the session's own edits introduced; it
+   was in the very first version. Rather than guess-and-check by ear, I
+   measured the filter's actual peak gain with `getFrequencyResponse()` at
+   pluck-time and divided the feedback gain by it, which makes the loop
+   provably stable — bounded, monotonically decaying output at every note
+   and velocity, not just the ones I happened to try
+   ([`e049dc3`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-u8033161/commit/e049dc3)).
+
 ## Before you ship
 
 `pnpm check:evidence` verifies your citations resolve to real commits, that a
