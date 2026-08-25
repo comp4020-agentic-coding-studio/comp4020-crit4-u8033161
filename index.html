@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>COMP4020 prototype</title>
+    <title>Six strings</title>
     <meta
       name="description"
-      content="Replace this with one sentence saying what this page is. A search result and a link preview both show it."
+      content="A pluckable six-string instrument tuned to C major pentatonic — every combination stays consonant."
     />
 
     <!--
@@ -27,11 +27,16 @@
       </nav>
     </header>
     <main>
-      <h1>COMP4020 prototype</h1>
-      <p data-testid="intro">
-        Replace this with your prototype. This week's brief is on the course website;
-        <code>spec/README.md</code> explains how the checks in this repo relate to it.
-      </p>
+      <h1>Six strings</h1>
+      <div class="fretboard" data-testid="fretboard">
+        <button type="button" class="string" data-note="C3" data-key="a" aria-label="String 1, C3, key A"></button>
+        <button type="button" class="string" data-note="D3" data-key="s" aria-label="String 2, D3, key S"></button>
+        <button type="button" class="string" data-note="E3" data-key="d" aria-label="String 3, E3, key D"></button>
+        <button type="button" class="string" data-note="G3" data-key="f" aria-label="String 4, G3, key F"></button>
+        <button type="button" class="string" data-note="A3" data-key="j" aria-label="String 5, A3, key J"></button>
+        <button type="button" class="string" data-note="C4" data-key="k" aria-label="String 6, C4, key K"></button>
+      </div>
+      <p class="hint">drag a string, or press <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd></p>
     </main>
     <script type="module" src="./main.js"></script>
   </body>
