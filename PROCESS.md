@@ -24,69 +24,22 @@ than a flat oscillator tone, so it actually rings.
 
 ## The moments that mattered
 
-1. **Choosing "bare" over the templated stack.** The crit rewards a
-   deliberately chosen stack, not the default one. An instrument this small —
-   six buttons and one audio graph — doesn't need a bundler, so I dropped Vite
-   and TypeScript entirely and hand-wrote two small Node scripts
-   (`scripts/build.mjs`, `scripts/serve.mjs`) to replace what Vite was doing
-   for free
+1. **Choosing "bare" over the templated stack.** Six buttons and one audio
+   graph don't need a bundler, so I had the agent skip Vite and TypeScript
+   and write two small scripts to build and serve the site instead
    ([`4d7dcd2`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-u8033161/commit/4d7dcd2)).
-   The check that told me it actually worked was the same one the deployed
-   site depends on: `pnpm build` producing a `dist/` that `pnpm check`'s tests
-   read from directly, and a hand-written static server that I verified wasn't
-   just serving `/` — I hit the path-traversal case (`%2e%2e` and `..`)
-   deliberately with `curl` before trusting it, after an early version 403'd
-   on every file except the index page.
+   To check the server actually worked, I tried to make it serve files
+   outside the site folder (using `../` and `%2e%2e` in the URL) — an early
+   version had blocked every file except the homepage, so I wanted proof that
+   was really fixed.
 
-2. **Not trusting the test suite as proof it runs.** `spec/crit-4.test.ts`
-   only reads the built `index.html` and `main.js` as static files — jsdom
-   doesn't execute `<script>` tags, so a suite full of green checks would
-   still pass if `main.js` threw on the first click. I drove the actual page
-   in a headless browser (Playwright, since `chromium-cli` wasn't available in
-   this environment) through all three input paths — drag, keyboard, and
-   Tab+Enter — before calling it done
+2. **Not trusting the test suite as proof it runs.** The automated tests only
+   read the built HTML and JS as plain text; they never actually run the
+   page, so they would still pass even if a click did nothing. I had the
+   agent drive the real page with a browser and try every way of playing a
+   string — dragging, pressing its key, and tabbing to it — before calling
+   it done
    ([`a394fa5`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-u8033161/commit/a394fa5)).
-
-3. **What that driving run actually caught.** The Tab+Enter path silently
-   failed to make sound the first time any given string was activated within
-   500ms of page load. The click handler guards against double-firing when a
-   pointer pluck and its resulting synthetic `click` both land
-   (`recentPointerPluck.get(button) ?? 0`), but `0` collides with
-   `performance.now()`'s own small value right after navigation — so a string
-   that had *never* been touched read as "just plucked a moment ago" and the
-   guard swallowed the real first Enter press. A static test can't see this;
-   it has no page-load clock to race against. I fixed the sentinel
-   (`?? -Infinity`, which can never be "recent") and re-ran the same
-   browser-driven check to confirm all five paths (drag-bend, drag-glow, tap,
-   keyboard, Tab+Enter) now actually trigger `AudioBufferSourceNode.start`,
-   then wrote the failure mode into `CLAUDE.md` as a generalizable lesson
-   rather than just a fixed line
-   ([`0e2324b`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-u8033161/commit/0e2324b)).
-
-   > Full design was locked in a few messages back — build against that.
-
-   (This prompt referred to a design I didn't actually have in context; I said
-   so rather than inventing one, and the student re-supplied the real
-   spec — 6 fixed-pitch pentatonic strings, one home-row key each — before any
-   code was written.)
-
-4. **The instrument sounded harsh, and the obvious explanation was wrong.**
-   After actually listening, the working theory was an unfiltered oscillator
-   — but there is no oscillator here, this is Karplus-Strong. Rather than
-   bolt a filter onto a story that didn't match the architecture, I rendered
-   the actual signal offline (`OfflineAudioContext`) and found the real bug:
-   the in-loop damping filter has a small resonant overshoot (gain > 1) near
-   its own cutoff even at low Q, so `feedbackGain * filterPeakGain` exceeded
-   1 at that frequency. Compounded over the hundreds of loop iterations per
-   second these delay times imply, every pluck exploded exponentially —
-   peak amplitude went from ~0.3 to over 40,000 within a second, well past
-   clipping. This wasn't something the session's own edits introduced; it
-   was in the very first version. Rather than guess-and-check by ear, I
-   measured the filter's actual peak gain with `getFrequencyResponse()` at
-   pluck-time and divided the feedback gain by it, which makes the loop
-   provably stable — bounded, monotonically decaying output at every note
-   and velocity, not just the ones I happened to try
-   ([`e049dc3`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-u8033161/commit/e049dc3)).
 
 ## Before you ship
 
