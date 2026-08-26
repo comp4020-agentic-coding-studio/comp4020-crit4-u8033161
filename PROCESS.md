@@ -13,12 +13,14 @@ cover every deliverable.
 
 ## What I built
 
-**Six strings**: a six-string pluck instrument with no frets. Each string is
-fixed to one note in C major pentatonic (C3 D3 E3 G3 A3 C4, left to right), so
-any combination played together stays consonant — there's no wrong chord.
-Drag a string sideways and release to pluck it (how far you pull it drives
-loudness and brightness), press its home-row key (A S D F J K), or Tab to it
-and hit Enter/Space. Synthesis is Karplus-Strong — a noise burst recirculating
+**Twelve strings**: a twelve-string pluck instrument with no frets, arranged
+in two rows of six. Each string is fixed to one note in C major pentatonic,
+with row two tuned one octave above row one (C3 D3 E3 G3 A3 C4, then C4 D4
+E4 G4 A4 C5, left to right), so any combination played together stays
+consonant — there's no wrong chord. Drag a string sideways and release to
+pluck it (how far you pull it drives loudness and brightness), press its key
+(row one: A S D F J K, row two: Q W E R U I), or Tab to it and hit
+Enter/Space. Synthesis is Karplus-Strong — a noise burst recirculating
 through a delay/lowpass/feedback loop tuned to the string's period — rather
 than a flat oscillator tone, so it actually rings.
 
