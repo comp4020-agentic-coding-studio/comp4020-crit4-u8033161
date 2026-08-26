@@ -24,14 +24,13 @@ than a flat oscillator tone, so it actually rings.
 
 ## The moments that mattered
 
-1. **Choosing "bare" over the templated stack.** Six buttons and one audio
-   graph don't need a bundler, so I had the agent skip Vite and TypeScript
-   and write two small scripts to build and serve the site instead
-   ([`4d7dcd2`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-u8033161/commit/4d7dcd2)).
-   To check the server actually worked, I tried to make it serve files
-   outside the site folder (using `../` and `%2e%2e` in the URL) — an early
-   version had blocked every file except the homepage, so I wanted proof that
-   was really fixed.
+1. **Fixing the harsh sound at its root, not with a quick tweak.** The first
+   version's sound was harsh and unpleasant — it sounded like noise, not a
+   plucked string. I told the agent to actually fix the root cause instead
+   of just adjusting settings. It found a real bug in the sound engine that
+   was causing the distortion, fixed it properly, and I confirmed by
+   listening that it now sounds clean
+   ([`e049dc3`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-u8033161/commit/e049dc3)).
 
 2. **Not trusting the test suite as proof it runs.** The automated tests only
    read the built HTML and JS as plain text; they never actually run the
